@@ -1,19 +1,58 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
-import { signInWithRedirect, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { signInWithRedirect, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, getRedirectResult } from 'firebase/auth';
+import { useAuth } from '../hooks/useAuth';
+import { useAlert } from '../context/CustomAlertContext';
 
 const Login = () => {
+  const { user, loading } = useAuth();
+  const { alert } = useAlert();
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
 
+  // 구글 리디렉션 로그인 결과 처리 (실서버용)
+  useEffect(() => {
+    // 로컬 환경이 아닐 때만 리디렉션 결과 처리 실행
+    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      getRedirectResult(auth)
+        .then((result) => {
+          if (result?.user) {
+            navigate('/', { replace: true });
+          }
+        })
+        .catch((error) => {
+          console.error("Redirect auth error:", error);
+          alert("구글 로그인 중 오류가 발생했습니다: " + error.message);
+        });
+    }
+  }, [navigate]);
+
+  // 이미 로그인한 사용자는 자동으로 홈으로 리디렉션
+  useEffect(() => {
+    if (!loading && user) {
+      navigate('/', { replace: true });
+    }
+  }, [user, loading, navigate]);
+
   const handleGoogleLogin = async () => {
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithRedirect(auth, provider);
+      // 로컬 개발 환경(localhost)에서는 팝업 로그인을 사용하여 크로스 도메인 쿠키 문제를 회피하고,
+      // 모바일 지원이 필수적인 실서버에서는 리디렉션 로그인을 사용합니다!
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        const result = await signInWithPopup(auth, provider);
+        if (result.user) {
+          navigate('/', { replace: true });
+        }
+      } else {
+        await signInWithRedirect(auth, provider);
+      }
     } catch (error) {
       console.error("Login failed:", error);
-      alert("로그인에 실패했습니다.");
+      alert("구글 로그인에 실패했습니다: " + error.message);
     }
   };
 

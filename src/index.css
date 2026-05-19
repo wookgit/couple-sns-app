@@ -9,6 +9,7 @@
   --glass-bg: rgba(255, 255, 255, 0.7);
   --glass-border: rgba(255, 255, 255, 0.4);
   --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+  --modal-bg: #ffffff;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -20,6 +21,7 @@
     --glass-bg: rgba(30, 30, 30, 0.7);
     --glass-border: rgba(255, 255, 255, 0.1);
     --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    --modal-bg: #1e1e1e;
   }
 }
 
@@ -56,6 +58,10 @@ body {
   overflow-y: auto;
   padding: 20px;
   padding-bottom: 40px; /* Extra breathing room */
+}
+
+.page-container .glass-card {
+  max-width: 100%;
 }
 
 /* Glassmorphism Navbar */
@@ -213,6 +219,7 @@ body {
 }
 
 .feed-card {
+  max-width: 100%;
   border-radius: 20px;
   padding: 16px;
   display: flex;
@@ -224,8 +231,101 @@ body {
 .feed-card-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.author-profile-group {
+  display: flex;
+  align-items: center;
   gap: 12px;
 }
+
+.post-author-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.post-header-action-btn {
+  background: none;
+  border: none;
+  font-size: 12px;
+  color: var(--text-sub);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.post-header-action-btn:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.post-header-action-btn.edit:hover {
+  color: #3b82f6;
+}
+
+.post-header-action-btn.delete:hover {
+  color: #ef4444;
+}
+
+/* Post Inline Edit Form */
+.post-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.post-edit-textarea {
+  width: 100%;
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 12px;
+  font-family: inherit;
+  font-size: 14px;
+  resize: none;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--text-main);
+  outline: none;
+  line-height: 1.5;
+}
+
+.post-edit-textarea:focus {
+  border-color: var(--primary-light);
+}
+
+.post-edit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.post-edit-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.post-edit-btn:active {
+  opacity: 0.8;
+}
+
+.post-edit-btn.save {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+}
+
+.post-edit-btn.cancel {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-sub);
+}
+
 
 .profile-img {
   width: 40px;
@@ -306,6 +406,218 @@ body {
   color: var(--primary);
 }
 
+.feed-action-btn.liked {
+  color: var(--accent);
+}
+
+/* Comments Section inside Feed Card */
+.comments-section {
+  border-top: 1px dashed var(--glass-border);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 180px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.comment-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  animation: commentFadeIn 0.25s ease-out;
+}
+
+.comment-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.comment-avatar-fallback {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--primary-light);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.comment-content {
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 12px;
+  padding: 6px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  max-width: calc(100% - 36px);
+  word-break: break-all;
+}
+
+.comment-author {
+  font-weight: 600;
+  color: var(--text-main);
+  font-size: 12px;
+}
+
+.comment-text {
+  color: var(--text-main);
+  line-height: 1.4;
+}
+
+.comment-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.comment-input {
+  flex: 1;
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-size: 13px;
+  outline: none;
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--text-main);
+  font-family: inherit;
+}
+
+.comment-input:focus {
+  border-color: var(--primary-light);
+}
+
+.comment-submit-btn {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.comment-submit-btn:active {
+  opacity: 0.8;
+}
+
+@keyframes commentFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.comment-item-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.comment-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-left: 10px;
+}
+
+.comment-action-btn {
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-sub);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.comment-action-btn:hover {
+  color: var(--primary);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.comment-action-btn.like.liked {
+  color: var(--accent);
+}
+
+.comment-action-btn.edit:hover {
+  color: #3b82f6;
+}
+
+.comment-action-btn.delete:hover {
+  color: #ef4444;
+}
+
+/* Comment Inline Edit Form */
+.comment-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  min-width: 200px;
+}
+
+.comment-edit-input {
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 13px;
+  outline: none;
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--text-main);
+  font-family: inherit;
+  width: 100%;
+}
+
+.comment-edit-input:focus {
+  border-color: var(--primary-light);
+}
+
+.comment-edit-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.comment-edit-btn {
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.comment-edit-btn.save {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+}
+
+.comment-edit-btn.cancel {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-sub);
+}
+
 /* Floating Action Button */
 .fab-btn {
   position: absolute;
@@ -332,12 +644,14 @@ body {
 
 /* Modal Overlay & Card */
 .modal-overlay {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.4);
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -353,6 +667,9 @@ body {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  background: var(--modal-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
 }
 
 .modal-header {
@@ -835,3 +1152,484 @@ body {
   font-size: 11px;
   color: var(--text-sub);
 }
+
+/* Calendar Event Upgrades */
+.event-item {
+  transition: transform 0.2s, background 0.2s;
+}
+
+.event-item:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.event-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.event-time-tag {
+  font-size: 11px;
+  background: rgba(255, 75, 130, 0.1);
+  color: var(--primary);
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+/* Detail Modal Styles */
+.detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: left;
+}
+
+.detail-image {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  border-radius: 16px;
+}
+
+.detail-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.detail-info-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-sub);
+}
+
+.detail-memo-box {
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-main);
+  word-break: break-all;
+}
+
+.detail-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  width: 100%;
+}
+
+.detail-btn {
+  flex: 1;
+  border: none;
+  border-radius: 14px;
+  padding: 12px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: inherit;
+}
+
+.detail-btn:active {
+  transform: scale(0.96);
+}
+
+.detail-btn.edit-btn {
+  background: rgba(59, 130, 246, 0.08);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.18);
+}
+
+.detail-btn.edit-btn:hover {
+  background: #3b82f6;
+  color: white;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
+.detail-btn.delete-btn {
+  background: rgba(239, 68, 68, 0.08);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.18);
+}
+
+.detail-btn.delete-btn:hover {
+  background: #ef4444;
+  color: white;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+}
+
+.detail-btn.close-action-btn {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--text-main);
+  border: 1px solid var(--glass-border);
+}
+
+.detail-btn.close-action-btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+/* Premium Time Picker Custom Dropdowns */
+.time-select-container {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+  animation: modalFadeIn 0.2s ease-out;
+}
+
+.modal-select {
+  flex: 1;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--glass-border);
+  background: var(--modal-bg);
+  color: var(--text-main);
+  font-size: 14px;
+  outline: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.modal-select:focus {
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 2px rgba(255, 75, 130, 0.15);
+}
+
+/* Custom Alert & Confirm Premium Dialogs */
+.custom-alert-overlay {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 9999;
+}
+
+.custom-alert-content {
+  width: 100%;
+  max-width: 320px;
+  border-radius: 20px;
+  padding: 20px;
+  background: var(--modal-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: alertPopIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.custom-alert-body p {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.custom-alert-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  width: 100%;
+}
+
+.custom-alert-btn {
+  flex: 1;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.custom-alert-btn:active {
+  transform: scale(0.97);
+}
+
+.custom-alert-btn.alert-ok {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+}
+
+.custom-alert-btn.confirm-ok {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+}
+
+.custom-alert-btn.confirm-cancel {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-sub);
+  border: 1px solid var(--glass-border);
+}
+
+@keyframes alertPopIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.85) translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Profile Editor Styles */
+.profile-edit-trigger {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(255, 75, 130, 0.3);
+  transition: transform 0.2s;
+  z-index: 2;
+}
+
+.profile-edit-trigger:active {
+  transform: scale(0.9);
+}
+
+.avatar-upload-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s;
+  border: 3px solid white;
+}
+
+.profile-avatar-wrapper:hover .avatar-upload-overlay {
+  opacity: 1;
+}
+
+.profile-edit-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.profile-name-input {
+  width: 100%;
+  max-width: 240px;
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 8px 16px;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  outline: none;
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--text-main);
+  transition: border-color 0.2s;
+}
+
+.profile-name-input:focus {
+  border-color: var(--primary-light);
+}
+
+.profile-edit-actions-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  max-width: 240px;
+  margin-top: 4px;
+}
+
+.profile-edit-btn {
+  flex: 1;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.profile-edit-btn.save {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+}
+
+.profile-edit-btn.cancel {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-sub);
+  border: 1px solid var(--glass-border);
+}
+
+/* Notification Bell and Badge Styles */
+.notification-bell-btn {
+  background: none;
+  border: none;
+  color: var(--text-main);
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+.notification-bell-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.notification-bell-btn:active {
+  transform: scale(0.95);
+}
+
+.notification-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background-color: var(--primary);
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--bg-color);
+}
+
+/* Notification Modal and List Styles */
+.notifications-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.notification-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.02);
+  transition: background-color 0.2s;
+  cursor: pointer;
+  text-align: left;
+}
+
+.notification-item:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.notification-item.unread {
+  background: rgba(255, 75, 130, 0.06);
+  border-left: 3px solid var(--accent);
+}
+
+.notification-item-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.notification-item-avatar-fallback {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--primary-light);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.notification-item-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.notification-item-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.notification-item-body {
+  font-size: 12px;
+  color: var(--text-sub);
+  line-height: 1.4;
+}
+
+.notification-item-date {
+  font-size: 10px;
+  color: var(--text-sub);
+  opacity: 0.7;
+  margin-top: 4px;
+}
+
+.notifications-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-sub);
+  font-size: 14px;
+}
+
+
+
+
+

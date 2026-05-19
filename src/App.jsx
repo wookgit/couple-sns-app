@@ -6,10 +6,11 @@ import Calendar from './pages/Calendar';
 import Settings from './pages/Settings';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
+import { CustomAlertProvider } from './context/CustomAlertContext';
 
 function App() {
   return (
-    <>
+    <CustomAlertProvider>
       <Routes>
         <Route path="/login" element={<Login />} />
         
@@ -33,7 +34,7 @@ function App() {
           </ProtectedRoute>
         } />
       </Routes>
-    </>
+    </CustomAlertProvider>
   );
 }
 

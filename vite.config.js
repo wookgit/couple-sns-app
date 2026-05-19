@@ -11,6 +11,9 @@ export default defineConfig({
       devOptions: {
         enabled: true
       },
+      workbox: {
+        navigateFallbackDenylist: [/^\/__/]
+      },
       manifest: {
         name: 'Our Moments',
         short_name: 'OurMoments',
