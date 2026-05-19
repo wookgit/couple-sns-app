@@ -171,6 +171,30 @@ body {
   transform: scale(0.98);
 }
 
+.login-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: var(--text-sub);
+  font-size: 12px;
+  margin: 20px 0;
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.login-divider:not(:empty)::before {
+  margin-right: .5em;
+}
+
+.login-divider:not(:empty)::after {
+  margin-left: .5em;
+}
+
 /* Timeline Feed */
 .feed-container {
   display: flex;
