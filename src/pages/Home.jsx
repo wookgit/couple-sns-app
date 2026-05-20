@@ -142,8 +142,8 @@ const Home = () => {
         ...doc.data()
       }));
       
-      // createdAt 기준 내림차순 정렬 (복합 인덱스 에러 방지)
-      postsData.sort((a, b) => b.createdAt - a.createdAt);
+      // createdAt 기준 내림차순 정렬 (최신순)
+      postsData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
 
       // 초기 마운트 시에는 알림 발송 차단 (postsRef.current가 채워진 상태일 때만 반응)
