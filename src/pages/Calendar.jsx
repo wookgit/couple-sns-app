@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, addDoc, query, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, query, onSnapshot, doc, updateDoc, deleteDoc, where, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { useAuth } from '../hooks/useAuth';
 import { useAlert } from '../context/CustomAlertContext';
-import { ChevronLeft, ChevronRight, Plus, X, Calendar as CalendarIcon, Clock, Camera, Edit2, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X, Calendar as CalendarIcon, Clock, Camera, Edit2, Trash2, MessageCircle, User, Send } from 'lucide-react';
 import { sendNotification } from '../services/notificationService';
 
 const Calendar = () => {
@@ -33,14 +33,25 @@ const Calendar = () => {
   const [imagePreview, setImagePreview] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [uploading, setUploading] = useState(false);
-
+  const [commentText, setCommentText] = useState('');
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editingText, setEditingText] = useState('');
+  const [userProfiles, setUserProfiles] = useState({});
+  const [selectedProfileUser, setSelectedProfileUser] = useState(null);
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
   // Firestore 실시간 일정 연동
   useEffect(() => {
-    if (!db) return;
-    const q = query(collection(db, 'events'));
+    if (!db || !user) return;
+    
+    // 오직 나와 상대방의 일정만 가져오도록 필터링
+    const authors = user.partnerUid ? [user.uid, user.partnerUid] : [user.uid];
+    const q = query(
+      collection(db, 'events'),
+      where('authorUid', 'in', authors)
+    );
+    
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const eventsData = snapshot.docs.map((doc) => ({
         id: doc.id,
@@ -49,6 +60,19 @@ const Calendar = () => {
       setEvents(eventsData);
     });
 
+    return () => unsubscribe();
+  }, [user]);
+
+  // 실시간 모든 사용자 프로필 로딩 (댓글 아바타와 닉네임 실시간 반영)
+  useEffect(() => {
+    if (!db) return;
+    const unsubscribe = onSnapshot(collection(db, 'users'), (snapshot) => {
+      const profiles = {};
+      snapshot.forEach((doc) => {
+        profiles[doc.id] = doc.data();
+      });
+      setUserProfiles(profiles);
+    });
     return () => unsubscribe();
   }, []);
 
@@ -233,6 +257,100 @@ const Calendar = () => {
       console.error('Error deleting event:', error);
       alert('일정 삭제 중 오류가 발생했습니다.');
     }
+  };
+
+  const scrollToLatestComment = (eventId) => {
+    setTimeout(() => {
+      const element = document.getElementById(`comments-list-${eventId}`);
+      if (element) {
+        element.scrollTo({
+          top: element.scrollHeight,
+          behavior: 'smooth'
+        });
+      }
+    }, 80);
+  };
+
+  const handleAddComment = async (eventId, text) => {
+    if (!text.trim() || !user || !db) return;
+    const eventRef = doc(db, 'events', eventId);
+
+    try {
+      await updateDoc(eventRef, {
+        comments: arrayUnion({
+          id: `${user.uid}_${Date.now()}`,
+          authorUid: user.uid,
+          authorName: user.displayName || '익명의 커플',
+          authorPhoto: user.photoURL || '',
+          text: text.trim(),
+          createdAt: new Date().toISOString()
+        })
+      });
+      setCommentText('');
+      scrollToLatestComment(eventId);
+      
+      const targetEvent = events.find(e => e.id === eventId);
+      if (targetEvent && targetEvent.authorUid !== user.uid) {
+        sendNotification(
+          user,
+          'calendar',
+          '일정에 새로운 댓글 💬',
+          `${user.displayName || '상대방'}님이 일정에 댓글을 남겼어요: "${text.trim()}"`,
+          'calendar'
+        );
+      }
+    } catch (err) {
+      console.error('Error adding comment to event:', err);
+      alert('댓글 등록 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleDeleteComment = async (eventId, comment) => {
+    const isConfirmed = await confirm('이 댓글을 삭제하시겠습니까?');
+    if (!isConfirmed) return;
+    const eventRef = doc(db, 'events', eventId);
+    try {
+      await updateDoc(eventRef, {
+        comments: arrayRemove(comment)
+      });
+    } catch (err) {
+      console.error('Error deleting comment:', err);
+      alert('댓글 삭제 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleUpdateComment = async (eventId, commentId, newText) => {
+    if (!newText.trim() || !db || !user) return;
+    const eventRef = doc(db, 'events', eventId);
+
+    try {
+      const event = events.find((e) => e.id === eventId);
+      if (!event) return;
+      const updatedComments = event.comments.map((c) => {
+        if (c.id === commentId) {
+          return { ...c, text: newText.trim() };
+        }
+        return c;
+      });
+
+      await updateDoc(eventRef, {
+        comments: updatedComments
+      });
+      setEditingCommentId(null);
+      setEditingText('');
+    } catch (err) {
+      console.error('Error updating comment:', err);
+      alert('댓글 수정 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleOpenProfile = (uid, fallbackName, fallbackPhoto) => {
+    const profile = userProfiles[uid] || {};
+    setSelectedProfileUser({
+      displayName: profile.displayName || fallbackName || '익명의 커플',
+      photoURL: profile.photoURL || fallbackPhoto || '',
+      email: profile.email || '이메일 정보 없음'
+    });
   };
 
   // 상세 보기 모달 켜기
@@ -474,6 +592,136 @@ const Calendar = () => {
                 닫기
               </button>
             </div>
+
+            {/* 댓글 영역 (디자인 개선) */}
+            <div className="comments-section" style={{ marginTop: '24px', borderTop: '1px dashed var(--glass-border)', paddingTop: '16px' }}>
+              <h4 style={{ fontSize: '15px', fontWeight: '700', marginBottom: '16px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <MessageCircle size={18} className="icon-pink" /> 
+                일정 댓글 <span style={{ fontSize: '13px', color: 'var(--primary)', fontWeight: '600' }}>{(() => {
+                  const ce = events.find(e => e.id === selectedEvent.id) || selectedEvent;
+                  return ce.comments?.length || 0;
+                })()}</span>
+              </h4>
+              
+              <div className="comments-list" id={`comments-list-${selectedEvent.id}`} style={{ maxHeight: '200px', overflowY: 'auto', marginBottom: '16px' }}>
+                {(() => {
+                  const currentEvent = events.find(e => e.id === selectedEvent.id) || selectedEvent;
+                  return currentEvent.comments && currentEvent.comments.length > 0 ? (
+                    currentEvent.comments.map((comment) => {
+                      const isMyComment = comment.authorUid === user?.uid || comment.id?.startsWith(user?.uid);
+                      
+                      const cProfile = userProfiles[comment.authorUid] || {};
+                      const cName = cProfile.displayName || comment.authorName || '익명의 커플';
+                      const cPhoto = cProfile.photoURL || comment.authorPhoto;
+
+                      return (
+                        <div key={comment.id} className="comment-item">
+                          {cPhoto ? (
+                            <img
+                              src={cPhoto}
+                              alt=""
+                              className="comment-avatar"
+                              onClick={() => handleOpenProfile(comment.authorUid, cName, cPhoto)}
+                              style={{ cursor: 'pointer' }}
+                            />
+                          ) : (
+                            <div
+                              className="comment-avatar-fallback"
+                              onClick={() => handleOpenProfile(comment.authorUid, cName, cPhoto)}
+                              style={{ cursor: 'pointer' }}
+                            >
+                              {cName[0]}
+                            </div>
+                          )}
+                          <div className="comment-item-body">
+                            <div className="comment-content">
+                              {editingCommentId === comment.id ? (
+                                <form 
+                                  onSubmit={(e) => {
+                                    e.preventDefault();
+                                    handleUpdateComment(selectedEvent.id, comment.id, editingText);
+                                  }}
+                                  className="comment-edit-form"
+                                >
+                                  <input 
+                                    value={editingText}
+                                    onChange={(e) => setEditingText(e.target.value)}
+                                    className="comment-edit-input"
+                                    required
+                                    autoFocus
+                                  />
+                                  <div className="comment-edit-actions">
+                                    <button type="submit" className="comment-edit-btn save">저장</button>
+                                    <button type="button" onClick={() => setEditingCommentId(null)} className="comment-edit-btn cancel">취소</button>
+                                  </div>
+                                </form>
+                              ) : (
+                                <>
+                                  <span
+                                    className="comment-author"
+                                    onClick={() => handleOpenProfile(comment.authorUid, cName, cPhoto)}
+                                    style={{ cursor: 'pointer' }}
+                                  >
+                                    {cName}
+                                  </span>
+                                  <span className="comment-text">{comment.text}</span>
+                                </>
+                              )}
+                            </div>
+
+                            {editingCommentId !== comment.id && (
+                              <div className="comment-actions-row">
+                                {isMyComment && (
+                                  <>
+                                    <button 
+                                      onClick={() => {
+                                        setEditingCommentId(comment.id);
+                                        setEditingText(comment.text);
+                                      }} 
+                                      className="comment-action-btn edit"
+                                    >
+                                      수정
+                                    </button>
+                                    <button 
+                                      onClick={() => handleDeleteComment(selectedEvent.id, comment)} 
+                                      className="comment-action-btn delete"
+                                    >
+                                      삭제
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p style={{ fontSize: '12px', color: 'var(--text-sub)', padding: '4px 0', textAlign: 'center' }}>첫 번째 댓글을 달아보세요! 💌</p>
+                  );
+                })()}
+              </div>
+              
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleAddComment(selectedEvent.id, commentText);
+                }} 
+                className="comment-form"
+              >
+                <input 
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  placeholder="둘만의 댓글 남기기..." 
+                  className="comment-input" 
+                  required 
+                  autoComplete="off"
+                />
+                <button type="submit" className="comment-submit-btn" aria-label="댓글 등록">
+                  <Send size={14} />
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       )}
@@ -606,6 +854,64 @@ const Calendar = () => {
                 {uploading ? '저장 중...' : isEditing ? '수정 완료하기' : '일정 저장하기'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 프로필 상세 보기 모달 */}
+      {selectedProfileUser && (
+        <div className="modal-overlay" onClick={() => setSelectedProfileUser(null)}>
+          <div className="modal-content glass-card" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>프로필 정보</h2>
+              <button onClick={() => setSelectedProfileUser(null)} className="close-btn">
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="detail-body" style={{ textAlign: 'center', padding: '20px' }}>
+              {selectedProfileUser.photoURL ? (
+                <img 
+                  src={selectedProfileUser.photoURL} 
+                  alt="Avatar" 
+                  className="large-avatar" 
+                  style={{ width: '120px', height: '120px', borderRadius: '50%', marginBottom: '12px', objectFit: 'cover', margin: '0 auto 12px' }} 
+                />
+              ) : (
+                <div 
+                  className="large-avatar-fallback" 
+                  style={{ width: '120px', height: '120px', borderRadius: '50%', margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--glass-border)', color: 'var(--text-sub)' }}
+                >
+                  <User size={60} />
+                </div>
+              )}
+              <h3 style={{ fontSize: '20px', fontWeight: '700', color: 'var(--text-main)', marginBottom: '4px' }}>
+                {selectedProfileUser.displayName}
+              </h3>
+              <p style={{ fontSize: '13px', color: 'var(--text-sub)' }}>
+                {selectedProfileUser.email}
+              </p>
+            </div>
+
+            <div className="detail-actions" style={{ textAlign: 'center', marginBottom: '12px', display: 'flex', justifyContent: 'center' }}>
+              <button 
+                onClick={() => setSelectedProfileUser(null)} 
+                className="detail-btn close-action-btn"
+                style={{ 
+                  background: 'rgba(0,0,0,0.05)',
+                  color: 'var(--text-sub)',
+                  border: '1px solid var(--glass-border)',
+                  borderRadius: '12px',
+                  padding: '10px 20px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  width: '100%',
+                  maxWidth: '120px'
+                }}
+              >
+                닫기
+              </button>
+            </div>
           </div>
         </div>
       )}

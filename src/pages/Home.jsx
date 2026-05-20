@@ -127,13 +127,24 @@ const Home = () => {
 
   // Firestore 실시간 데이터 가져오기 및 푸시 알림 트리거
   useEffect(() => {
-    if (!db) return;
-    const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
+    if (!db || !user) return;
+    
+    // 오직 나와 상대방의 글만 가져오도록 필터링 (완전 프라이빗)
+    const authors = user.partnerUid ? [user.uid, user.partnerUid] : [user.uid];
+    const q = query(
+      collection(db, 'posts'), 
+      where('authorUid', 'in', authors)
+    );
+    
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const postsData = snapshot.docs.map((doc) => ({
+      let postsData = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data()
       }));
+      
+      // createdAt 기준 내림차순 정렬 (복합 인덱스 에러 방지)
+      postsData.sort((a, b) => b.createdAt - a.createdAt);
+
 
       // 초기 마운트 시에는 알림 발송 차단 (postsRef.current가 채워진 상태일 때만 반응)
       if (postsRef.current.length > 0) {
