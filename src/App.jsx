@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Calendar from './pages/Calendar';
+import Checklist from './pages/Checklist';
 import Settings from './pages/Settings';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -24,6 +25,12 @@ function App() {
         <Route path="/calendar" element={
           <ProtectedRoute>
             <Calendar />
+            <Navbar />
+          </ProtectedRoute>
+        } />
+        <Route path="/checklist" element={
+          <ProtectedRoute>
+            <Checklist />
             <Navbar />
           </ProtectedRoute>
         } />

@@ -13,23 +13,6 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
 
-  // 구글 리디렉션 로그인 결과 처리 (실서버용)
-  useEffect(() => {
-    // 로컬 환경이 아닐 때만 리디렉션 결과 처리 실행
-    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-      getRedirectResult(auth)
-        .then((result) => {
-          if (result?.user) {
-            navigate('/', { replace: true });
-          }
-        })
-        .catch((error) => {
-          console.error("Redirect auth error:", error);
-          alert("구글 로그인 중 오류가 발생했습니다: " + error.message);
-        });
-    }
-  }, [navigate]);
-
   // 이미 로그인한 사용자는 자동으로 홈으로 리디렉션
   useEffect(() => {
     if (!loading && user) {
@@ -40,19 +23,32 @@ const Login = () => {
   const handleGoogleLogin = async () => {
     try {
       const provider = new GoogleAuthProvider();
-      // 로컬 개발 환경(localhost)에서는 팝업 로그인을 사용하여 크로스 도메인 쿠키 문제를 회피하고,
-      // 모바일 지원이 필수적인 실서버에서는 리디렉션 로그인을 사용합니다!
-      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        const result = await signInWithPopup(auth, provider);
-        if (result.user) {
-          navigate('/', { replace: true });
-        }
-      } else {
-        await signInWithRedirect(auth, provider);
+      provider.setCustomParameters({
+        prompt: 'select_account'
+      });
+      
+      // 서드파티 쿠키 차단 정책 우회를 위해 signInWithPopup을 기본으로 일괄 적용합니다.
+      const result = await signInWithPopup(auth, provider);
+      if (result.user) {
+        navigate('/', { replace: true });
       }
     } catch (error) {
-      console.error("Login failed:", error);
-      alert("구글 로그인에 실패했습니다: " + error.message);
+      console.error("Google Login failed:", error);
+      
+      // 팝업이 차단된 환경일 경우에만 안전하게 리디렉션 폴백 실행
+      if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
+        try {
+          const provider = new GoogleAuthProvider();
+          await signInWithRedirect(auth, provider);
+        } catch (redirectError) {
+          console.error("Redirect login fallback failed:", redirectError);
+          alert("구글 로그인에 실패했습니다: " + redirectError.message);
+        }
+      } else if (error.code === 'auth/operation-not-allowed') {
+        alert("🚨 구글 로그인 기능이 활성화되지 않았습니다. Firebase 콘솔 (Authentication -> Sign-in method)에서 Google 제공업체를 활성화해주세요!");
+      } else {
+        alert("구글 로그인에 실패했습니다: " + error.message);
+      }
     }
   };
 

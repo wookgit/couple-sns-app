@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { auth, db } from '../firebase';
 import { signOut } from 'firebase/auth';
-import { doc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, setDoc, collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '../hooks/useAuth';
 import { useAlert } from '../context/CustomAlertContext';
-import { LogOut, Link2, User, Heart, Shield, Bell, Camera, Edit2, X } from 'lucide-react';
+import { LogOut, Link2, User, Heart, Shield, Bell, Camera, Edit2, X, RefreshCw } from 'lucide-react';
 
 const Settings = () => {
   const { user } = useAuth();
@@ -24,6 +24,28 @@ const Settings = () => {
 
   const [inputCode, setInputCode] = useState('');
   const [connecting, setConnecting] = useState(false);
+  const [partnerProfile, setPartnerProfile] = useState(null);
+
+  // 상대방 프로필 실시간 감시 (닉네임 변경 즉시 반영)
+  useEffect(() => {
+    if (!db || !user?.partnerUid) {
+      setPartnerProfile(null);
+      return;
+    }
+
+    const partnerRef = doc(db, 'users', user.partnerUid);
+    const unsubscribe = onSnapshot(partnerRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setPartnerProfile(docSnap.data());
+      } else {
+        setPartnerProfile(null);
+      }
+    }, (err) => {
+      console.error("Error loading partner profile:", err);
+    });
+
+    return () => unsubscribe();
+  }, [user?.partnerUid]);
 
   // 컴포넌트 마운트 및 user 상태 바뀔 때 정보 로드
   useEffect(() => {
@@ -41,6 +63,36 @@ const Settings = () => {
       await signOut(auth);
     } catch (error) {
       console.error('Logout failed:', error);
+    }
+  };
+
+  const handleCacheClearAndRefresh = async () => {
+    const isConfirmed = await confirm(
+      "앱 캐시 및 서비스 워커를 비우고 강제로 새로고침하시겠습니까?\n화면 업데이트가 제대로 반영되지 않을 때 유용합니다."
+    );
+    if (!isConfirmed) return;
+
+    try {
+      // 1. Service Worker 해제
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (let registration of registrations) {
+          await registration.unregister();
+        }
+      }
+      // 2. 캐시 스토리지 삭제
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        for (let key of keys) {
+          await caches.delete(key);
+        }
+      }
+      await alert('캐시가 초기화되었습니다. 최신 버전으로 앱을 다시 불러옵니다! 🚀');
+      // 3. 강제 새로고침
+      window.location.reload(true);
+    } catch (err) {
+      console.error('Error clearing cache:', err);
+      await alert('캐시 비우기 중 오류가 발생했습니다.');
     }
   };
 
@@ -388,10 +440,62 @@ const Settings = () => {
 
         {user?.partnerUid ? (
           <>
-            <p className="settings-description" style={{ color: 'var(--primary)', fontWeight: '600', marginTop: '8px' }}>
-              연결된 상대방: {user.partnerName || '상대방'} 님
-            </p>
-            <p className="settings-description" style={{ marginTop: '4px' }}>
+            <div className="partner-profile-card" style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '16px',
+              padding: '16px',
+              borderRadius: '20px',
+              background: 'rgba(255, 255, 255, 0.4)',
+              border: '1px solid var(--glass-border)',
+              marginTop: '12px',
+              marginBottom: '12px'
+            }}>
+              {partnerProfile?.photoURL ? (
+                <img 
+                  src={partnerProfile.photoURL} 
+                  alt="Partner Avatar" 
+                  style={{ 
+                    width: '56px', 
+                    height: '56px', 
+                    borderRadius: '50%', 
+                    objectFit: 'cover', 
+                    border: '2px solid var(--primary-light)',
+                    boxShadow: 'var(--shadow-sm)'
+                  }} 
+                />
+              ) : (
+                <div style={{ 
+                  width: '56px', 
+                  height: '56px', 
+                  borderRadius: '50%', 
+                  background: 'var(--primary-light)', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justify: 'center', 
+                  color: 'var(--primary)' 
+                }}>
+                  <Heart size={24} fill="var(--primary)" />
+                </div>
+              )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left' }}>
+                <span style={{ 
+                  color: 'var(--primary)', 
+                  fontWeight: '600', 
+                  fontSize: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}>
+                  {partnerProfile?.displayName || user.partnerName || '상대방'}
+                  <span style={{ fontSize: '12px', fontWeight: 'normal', color: 'var(--text-sub)' }}>님</span>
+                </span>
+                <span style={{ color: 'var(--text-sub)', fontSize: '13px' }}>
+                  {partnerProfile?.email || '이메일 정보 없음'}
+                </span>
+              </div>
+            </div>
+            <p className="settings-description" style={{ marginTop: '8px' }}>
               소중하게 연결된 상태입니다. 둘만의 사진첩과 일정을 함께 채워나가 보세요! 💕
             </p>
             <button 
@@ -517,6 +621,24 @@ const Settings = () => {
           <Shield size={18} className="icon-blue" />
           <h3>앱 및 보안 설정</h3>
         </div>
+
+        <button 
+          onClick={handleCacheClearAndRefresh} 
+          className="action-row-btn"
+          style={{
+            background: 'rgba(59, 130, 246, 0.08)',
+            color: '#2563eb',
+            border: '1px solid rgba(59, 130, 246, 0.2)',
+            marginBottom: '10px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px'
+          }}
+        >
+          <RefreshCw size={14} />
+          <span>캐시 비우기 및 강제 새로고침</span>
+        </button>
 
         <button onClick={handleLogout} className="action-row-btn logout-action">
           <LogOut size={16} />

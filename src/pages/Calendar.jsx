@@ -607,7 +607,9 @@ const Calendar = () => {
                 {(() => {
                   const currentEvent = events.find(e => e.id === selectedEvent.id) || selectedEvent;
                   return currentEvent.comments && currentEvent.comments.length > 0 ? (
-                    currentEvent.comments.map((comment) => {
+                    [...currentEvent.comments]
+                      .sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0))
+                      .map((comment) => {
                       const isMyComment = comment.authorUid === user?.uid || comment.id?.startsWith(user?.uid);
                       
                       const cProfile = userProfiles[comment.authorUid] || {};

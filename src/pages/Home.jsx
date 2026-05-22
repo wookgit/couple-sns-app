@@ -1,10 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../firebase';
-import { collection, addDoc, query, orderBy, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove, increment, deleteDoc, where, getDocs } from 'firebase/firestore';
+import { collection, addDoc, query, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove, increment, deleteDoc, where, getDocs } from 'firebase/firestore';
 import { useAuth } from '../hooks/useAuth';
 import { useAlert } from '../context/CustomAlertContext';
-import { Heart, MessageCircle, Camera, Plus, X, Send, User, Bell } from 'lucide-react';
+import { Plus, Bell } from 'lucide-react';
 import { sendNotification } from '../services/notificationService';
+
+// 분할된 컴포넌트 임포트
+import PostCard from '../components/PostCard';
+import UploadModal from '../components/UploadModal';
+import ProfileModal from '../components/ProfileModal';
+import NotificationsModal from '../components/NotificationsModal';
+import InAppToast from '../components/InAppToast';
 
 const Home = () => {
   const { user } = useAuth();
@@ -12,8 +19,8 @@ const Home = () => {
   const [posts, setPosts] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [text, setText] = useState('');
-  const [image, setImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState('');
+  const [images, setImages] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [openComments, setOpenComments] = useState({}); // { [postId]: true/false }
   const [editingCommentId, setEditingCommentId] = useState(null);
@@ -22,6 +29,7 @@ const Home = () => {
   const [editingPostText, setEditingPostText] = useState('');
   const [userProfiles, setUserProfiles] = useState({});
   const [selectedProfileUser, setSelectedProfileUser] = useState(null);
+  const [currentSlides, setCurrentSlides] = useState({}); // { [postId]: activeIndex }
 
   // 실시간 모든 사용자 프로필 로딩 (기존 글/댓글 아바타와 닉네임 실시간 반영)
   useEffect(() => {
@@ -38,14 +46,19 @@ const Home = () => {
 
   const [notifications, setNotifications] = useState([]);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [activeToast, setActiveToast] = useState(null);
+  const isInitialNotifs = useRef(true);
 
-  // 실시간 알림 목록 불러오기
+  // 실시간 알림 목록 불러오기 및 푸시 트리거
   useEffect(() => {
     if (!db || !user) return;
     const q = query(
       collection(db, 'notifications'),
       where('recipientUid', '==', user.uid)
     );
+    
+    isInitialNotifs.current = true;
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const notifs = snapshot.docs.map((doc) => ({
         id: doc.id,
@@ -54,6 +67,23 @@ const Home = () => {
       // 인덱스 생성 오류 방지를 위해 메모리상에서 정렬
       notifs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       setNotifications(notifs);
+
+      // 마운트 이후 실시간으로 수신되는 읽지 않은 상대방의 알림에 대해 브라우저 푸시 알림 트리거
+      if (!isInitialNotifs.current) {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === 'added') {
+            const newNotif = change.doc.data();
+            if (newNotif.senderUid !== user.uid && !newNotif.read) {
+              triggerPushNotification(
+                newNotif.title || "새로운 알림 💖",
+                newNotif.body || ""
+              );
+            }
+          }
+        });
+      } else {
+        isInitialNotifs.current = false;
+      }
     }, (error) => {
       console.error("Error loading notifications:", error);
     });
@@ -91,12 +121,6 @@ const Home = () => {
     createWelcomeNotification();
   }, [user]);
 
-  // 실시간 비교용 posts 최신 상태 보관 Ref (Stale Closure 방지)
-  const postsRef = useRef([]);
-  useEffect(() => {
-    postsRef.current = posts;
-  }, [posts]);
-
   // 첫 페이지 마운트 시 브라우저 알림 권한 요청
   useEffect(() => {
     if ('Notification' in window && Notification.permission === 'default') {
@@ -104,28 +128,42 @@ const Home = () => {
     }
   }, []);
 
-  // 브라우저 네이티브 알림 발송 함수 (서비스 워커 백그라운드 푸시 연동)
+  // 인앱 토스트 알림 자동 만료 타이머
+  useEffect(() => {
+    if (activeToast) {
+      const timer = setTimeout(() => {
+        setActiveToast(null);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [activeToast]);
+
+  // 브라우저 네이티브 알림 발송 함수 (서비스 워커 백그라운드 푸시 연동) 및 인앱 토스트
   const triggerPushNotification = (title, body) => {
+    // 1. 인앱 실시간 알림 토스트 트리거
+    setActiveToast({ title, body });
+
+    // 2. 브라우저/OS 네이티브 푸시 알림 트리거
     if (!('Notification' in window)) return;
     if (Notification.permission === 'granted') {
       try {
         navigator.serviceWorker.ready.then((registration) => {
           registration.showNotification(title, {
             body,
-            icon: '/manifest-icon-192.maskable.png',
-            badge: '/manifest-icon-192.maskable.png',
+            icon: '/favicon.svg',
+            badge: '/favicon.svg',
             vibrate: [200, 100, 200]
           });
         }).catch(() => {
-          new Notification(title, { body, icon: '/manifest-icon-192.maskable.png' });
+          new Notification(title, { body, icon: '/favicon.svg' });
         });
       } catch (err) {
-        new Notification(title, { body, icon: '/manifest-icon-192.maskable.png' });
+        new Notification(title, { body, icon: '/favicon.svg' });
       }
     }
   };
 
-  // Firestore 실시간 데이터 가져오기 및 푸시 알림 트리거
+  // Firestore 실시간 데이터 가져오기
   useEffect(() => {
     if (!db || !user) return;
     
@@ -144,63 +182,6 @@ const Home = () => {
       
       // createdAt 기준 내림차순 정렬 (최신순)
       postsData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-
-      // 초기 마운트 시에는 알림 발송 차단 (postsRef.current가 채워진 상태일 때만 반응)
-      if (postsRef.current.length > 0) {
-        snapshot.docChanges().forEach((change) => {
-          const newPost = change.doc.data();
-          const isMyPost = newPost.authorUid === user?.uid;
-
-          // 1. 새 글 추가 감지 (상대방이 쓴 글일 때)
-          if (change.type === 'added') {
-            const isDifferentAuthor = newPost.authorUid !== user?.uid;
-            const postTime = new Date(newPost.createdAt).getTime();
-            const nowTime = new Date().getTime();
-            if (isDifferentAuthor && (nowTime - postTime < 15000)) {
-              triggerPushNotification(
-                "새로운 추억 등록 💖",
-                `${newPost.authorName || '상대방'}님이 새로운 글을 남겼어요: "${newPost.text || '사진 공유'}"`
-              );
-            }
-          }
-
-          // 2. 글 수정/변경 감지 (좋아요, 댓글 추가 등)
-          if (change.type === 'modified' && isMyPost) {
-            const oldPost = postsRef.current.find(p => p.id === change.doc.id);
-            if (oldPost) {
-              // A. 새로운 댓글 감지
-              const oldCommentsCount = (oldPost.comments || []).length;
-              const newComments = newPost.comments || [];
-              if (newComments.length > oldCommentsCount) {
-                const latestComment = newComments[newComments.length - 1];
-                // 본인이 쓴 대댓글이 아닐 때만 알람
-                if (latestComment && latestComment.authorUid !== user?.uid) {
-                  triggerPushNotification(
-                    "내 글에 새로운 댓글 💬",
-                    `${latestComment.authorName || '상대방'}님: "${latestComment.text}"`
-                  );
-                }
-              }
-
-              // B. 새로운 좋아요 감지
-              const oldHearts = oldPost.hearts || 0;
-              const newHearts = newPost.hearts || 0;
-              if (newHearts > oldHearts) {
-                const newLikedBy = newPost.likedBy || [];
-                const lastLikerUid = newLikedBy[newLikedBy.length - 1];
-                // 좋아요를 누른 사람이 내가 아닐 때만 알람
-                if (lastLikerUid && lastLikerUid !== user?.uid) {
-                  triggerPushNotification(
-                    "내 글에 좋아요 💖",
-                    "상대방이 내 글에 소중한 마음(좋아요)을 남겼습니다!"
-                  );
-                }
-              }
-            }
-          }
-        });
-      }
 
       setPosts(postsData);
     });
@@ -244,30 +225,49 @@ const Home = () => {
   };
 
   const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setImage(file);
-      setImagePreview(URL.createObjectURL(file));
+    const files = Array.from(e.target.files);
+    if (files.length > 0) {
+      const newImages = [...images, ...files].slice(0, 5);
+      setImages(newImages);
+      const newPreviews = newImages.map((file) => URL.createObjectURL(file));
+      setImagePreviews(newPreviews);
     }
+  };
+
+  const removeSelectedImage = (index) => {
+    const newImages = images.filter((_, i) => i !== index);
+    setImages(newImages);
+    const newPreviews = imagePreviews.filter((_, i) => i !== index);
+    setImagePreviews(newPreviews);
   };
 
   const handleUpload = async (e) => {
     e.preventDefault();
-    if (!text.trim() && !image) return;
+    if (!text.trim() && images.length === 0) return;
 
     setUploading(true);
     let finalImageUrl = '';
+    let compressedImages = [];
 
     try {
       // 이미지 업로드 대신, 브라우저에서 초경량 압축 후 Base64 문자열로 직접 변환
-      if (image) {
-        finalImageUrl = await compressAndConvertToBase64(image);
+      if (images.length > 0) {
+        for (const file of images) {
+          const compressed = await compressAndConvertToBase64(file);
+          compressedImages.push({
+            url: compressed,
+            likedBy: [],
+            hearts: 0
+          });
+        }
+        finalImageUrl = compressedImages[0]?.url || '';
       }
 
       // Firestore 글 추가 (Storage를 전혀 거치지 않고 직접 이미지 저장)
       const docRef = await addDoc(collection(db, 'posts'), {
         text,
         imageUrl: finalImageUrl,
+        images: compressedImages,
         authorName: user?.displayName || '익명의 커플',
         authorPhoto: user?.photoURL || '',
         authorUid: user?.uid,
@@ -288,8 +288,8 @@ const Home = () => {
 
       // 초기화
       setText('');
-      setImage(null);
-      setImagePreview('');
+      setImages([]);
+      setImagePreviews([]);
       setIsModalOpen(false);
     } catch (error) {
       console.error('Error sharing post:', error);
@@ -326,6 +326,67 @@ const Home = () => {
       }
     } catch (error) {
       console.error('Error toggling like:', error);
+    }
+  };
+
+  // 개별 사진 좋아요 토글 핸들러
+  const handleImageLike = async (postId, imageIndex) => {
+    if (!db || !user) return;
+    const post = posts.find((p) => p.id === postId);
+    if (!post || !post.images || !post.images[imageIndex]) return;
+
+    const updatedImages = [...post.images];
+    const targetImage = { ...updatedImages[imageIndex] };
+    const imageLikedBy = targetImage.likedBy || [];
+    const isLiked = imageLikedBy.includes(user.uid);
+
+    if (isLiked) {
+      targetImage.likedBy = imageLikedBy.filter((uid) => uid !== user.uid);
+      targetImage.hearts = Math.max(0, (targetImage.hearts || 1) - 1);
+    } else {
+      targetImage.likedBy = [...imageLikedBy, user.uid];
+      targetImage.hearts = (targetImage.hearts || 0) + 1;
+    }
+    updatedImages[imageIndex] = targetImage;
+
+    const postRef = doc(db, 'posts', postId);
+    try {
+      await updateDoc(postRef, {
+        images: updatedImages
+      });
+      if (!isLiked) {
+        sendNotification(
+          user,
+          'heart',
+          '사진에 좋아요 💖',
+          `${user.displayName || '상대방'}님이 내 사진에 소중한 마음(좋아요)을 남겼습니다!`,
+          `post_${postId}`
+        );
+      }
+    } catch (error) {
+      console.error('Error toggling image like:', error);
+    }
+  };
+
+  // 이미지 슬라이더 스크롤 이벤트 핸들러
+  const handleSliderScroll = (postId, e) => {
+    const slider = e.target;
+    const scrollIndex = Math.round(slider.scrollLeft / slider.clientWidth);
+    setCurrentSlides((prev) => ({ ...prev, [postId]: scrollIndex }));
+  };
+
+  // 이미지 슬라이더 이전/다음 이동 핸들러 (PC 웹 클릭용)
+  const handleSlidePrev = (postId) => {
+    const slider = document.getElementById(`slider-${postId}`);
+    if (slider) {
+      slider.scrollBy({ left: -slider.clientWidth, behavior: 'smooth' });
+    }
+  };
+
+  const handleSlideNext = (postId) => {
+    const slider = document.getElementById(`slider-${postId}`);
+    if (slider) {
+      slider.scrollBy({ left: slider.clientWidth, behavior: 'smooth' });
     }
   };
 
@@ -562,240 +623,35 @@ const Home = () => {
           </div>
         ) : (
           posts.map((post) => (
-            <div key={post.id} id={`post-${post.id}`} className="feed-card glass-card">
-              <div className="feed-card-header">
-                {(() => {
-                  const profile = userProfiles[post.authorUid] || {};
-                  const name = profile.displayName || post.authorName || '익명의 커플';
-                  const photo = profile.photoURL || post.authorPhoto;
-                  return (
-                    <div
-                      className="author-profile-group"
-                      onClick={() => handleOpenProfile(post.authorUid, name, photo)}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      {photo ? (
-                        <img src={photo} alt="Profile" className="profile-img" />
-                      ) : (
-                        <div className="profile-fallback">{name[0]}</div>
-                      )}
-                      <div className="author-info">
-                        <span className="author-name">{name}</span>
-                        <span className="post-date">
-                          {new Date(post.createdAt).toLocaleDateString('ko-KR', {
-                            month: 'long',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })()}
-                {post.authorUid === user?.uid && editingPostId !== post.id && (
-                  <div className="post-author-actions">
-                    <button 
-                      onClick={() => {
-                        setEditingPostId(post.id);
-                        setEditingPostText(post.text);
-                      }} 
-                      className="post-header-action-btn edit"
-                    >
-                      수정
-                    </button>
-                    <button 
-                      onClick={() => handleDeletePost(post.id)} 
-                      className="post-header-action-btn delete"
-                    >
-                      삭제
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {post.imageUrl && (
-                <div className="feed-image-wrapper">
-                  <img src={post.imageUrl} alt="Post" className="feed-image" />
-                </div>
-              )}
-
-              <div className="feed-card-content">
-                {editingPostId === post.id ? (
-                  <form 
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      handleUpdatePost(post.id, editingPostText);
-                    }}
-                    className="post-edit-form"
-                  >
-                    <textarea 
-                      value={editingPostText}
-                      onChange={(e) => setEditingPostText(e.target.value)}
-                      className="post-edit-textarea"
-                      rows={3}
-                      required
-                      autoFocus
-                    />
-                    <div className="post-edit-actions">
-                      <button type="submit" className="post-edit-btn save">저장하기</button>
-                      <button type="button" onClick={() => setEditingPostId(null)} className="post-edit-btn cancel">취소</button>
-                    </div>
-                  </form>
-                ) : (
-                  <p>{post.text}</p>
-                )}
-              </div>
-
-              <div className="feed-card-footer">
-                <button 
-                  onClick={() => handleLike(post.id, post.likedBy)}
-                  className={`feed-action-btn ${post.likedBy?.includes(user?.uid) ? 'liked' : ''}`}
-                >
-                  <Heart size={20} fill={post.likedBy?.includes(user?.uid) ? 'var(--accent)' : 'none'} />
-                  <span>{post.hearts || 0}</span>
-                </button>
-                <button 
-                  onClick={() => toggleComments(post.id)}
-                  className="feed-action-btn"
-                >
-                  <MessageCircle size={20} />
-                  <span>댓글 {post.comments?.length || 0}</span>
-                </button>
-              </div>
-
-              {/* 댓글 접기/펴기 영역 */}
-              {openComments[post.id] && (
-                <div className="comments-section">
-                  <div id={`comments-list-${post.id}`} className="comments-list">
-                    {(!post.comments || post.comments.length === 0) ? (
-                      <p style={{ fontSize: '12px', color: 'var(--text-sub)', padding: '4px 0' }}>첫 번째 댓글을 달아보세요! 💌</p>
-                    ) : (
-                      (post.comments || []).map((comment) => {
-                        const isMyComment = comment.authorUid === user?.uid || comment.id?.startsWith(user?.uid);
-                        const commentLiked = comment.likedBy?.includes(user?.uid);
-                        
-                        const cProfile = userProfiles[comment.authorUid] || {};
-                        const cName = cProfile.displayName || comment.authorName || '익명의 커플';
-                        const cPhoto = cProfile.photoURL || comment.authorPhoto;
-
-                        return (
-                          <div key={comment.id} className="comment-item">
-                            {cPhoto ? (
-                              <img
-                                src={cPhoto}
-                                alt=""
-                                className="comment-avatar"
-                                onClick={() => handleOpenProfile(comment.authorUid, cName, cPhoto)}
-                                style={{ cursor: 'pointer' }}
-                              />
-                            ) : (
-                              <div
-                                className="comment-avatar-fallback"
-                                onClick={() => handleOpenProfile(comment.authorUid, cName, cPhoto)}
-                                style={{ cursor: 'pointer' }}
-                              >
-                                {cName[0]}
-                              </div>
-                            )}
-                            <div className="comment-item-body">
-                              <div className="comment-content">
-                                {editingCommentId === comment.id ? (
-                                  <form 
-                                    onSubmit={(e) => {
-                                      e.preventDefault();
-                                      handleUpdateComment(post.id, comment.id, editingText);
-                                    }}
-                                    className="comment-edit-form"
-                                  >
-                                    <input 
-                                      value={editingText}
-                                      onChange={(e) => setEditingText(e.target.value)}
-                                      className="comment-edit-input"
-                                      required
-                                      autoFocus
-                                    />
-                                    <div className="comment-edit-actions">
-                                      <button type="submit" className="comment-edit-btn save">저장</button>
-                                      <button type="button" onClick={() => setEditingCommentId(null)} className="comment-edit-btn cancel">취소</button>
-                                    </div>
-                                  </form>
-                                ) : (
-                                  <>
-                                    <span
-                                      className="comment-author"
-                                      onClick={() => handleOpenProfile(comment.authorUid, cName, cPhoto)}
-                                      style={{ cursor: 'pointer' }}
-                                    >
-                                      {cName}
-                                    </span>
-                                    <span className="comment-text">{comment.text}</span>
-                                  </>
-                                )}
-                              </div>
-
-                              {/* 댓글 좋아요 / 수정 / 삭제 버튼 */}
-                              {editingCommentId !== comment.id && (
-                                <div className="comment-actions-row">
-                                  <button 
-                                    onClick={() => handleLikeComment(post.id, comment.id)} 
-                                    className={`comment-action-btn like ${commentLiked ? 'liked' : ''}`}
-                                  >
-                                    <Heart size={10} fill={commentLiked ? 'var(--accent)' : 'none'} />
-                                    <span>{comment.likedBy?.length || 0}</span>
-                                  </button>
-
-                                  {isMyComment && (
-                                    <>
-                                      <button 
-                                        onClick={() => {
-                                          setEditingCommentId(comment.id);
-                                          setEditingText(comment.text);
-                                        }} 
-                                        className="comment-action-btn edit"
-                                      >
-                                        수정
-                                      </button>
-                                      <button 
-                                        onClick={() => handleDeleteComment(post.id, comment.id)} 
-                                        className="comment-action-btn delete"
-                                      >
-                                        삭제
-                                      </button>
-                                    </>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                  
-                  <form 
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      const input = e.target.elements.commentInput;
-                      handleAddComment(post.id, input.value);
-                      input.value = '';
-                    }} 
-                    className="comment-form"
-                  >
-                    <input 
-                      name="commentInput" 
-                      placeholder="둘만의 댓글 남기기..." 
-                      className="comment-input" 
-                      required 
-                      autoComplete="off"
-                    />
-                    <button type="submit" className="comment-submit-btn" aria-label="댓글 등록">
-                      <Send size={14} />
-                    </button>
-                  </form>
-                </div>
-              )}
-            </div>
+            <PostCard
+              key={post.id}
+              post={post}
+              user={user}
+              userProfiles={userProfiles}
+              editingPostId={editingPostId}
+              setEditingPostId={setEditingPostId}
+              editingPostText={editingPostText}
+              setEditingPostText={setEditingPostText}
+              currentSlides={currentSlides}
+              onSliderScroll={handleSliderScroll}
+              onSlidePrev={handleSlidePrev}
+              onSlideNext={handleSlideNext}
+              onLike={handleLike}
+              onImageLike={handleImageLike}
+              onDeletePost={handleDeletePost}
+              onUpdatePost={handleUpdatePost}
+              onOpenProfile={handleOpenProfile}
+              openComments={openComments}
+              toggleComments={toggleComments}
+              editingCommentId={editingCommentId}
+              setEditingCommentId={setEditingCommentId}
+              editingText={editingText}
+              setEditingText={setEditingText}
+              onAddComment={handleAddComment}
+              onDeleteComment={handleDeleteComment}
+              onUpdateComment={handleUpdateComment}
+              onLikeComment={handleLikeComment}
+            />
           ))
         )}
       </div>
@@ -806,204 +662,38 @@ const Home = () => {
       </button>
 
       {/* 글쓰기 모달 */}
-      {isModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content glass-card">
-            <div className="modal-header">
-              <h2>새로운 추억 남기기</h2>
-              <button onClick={() => setIsModalOpen(false)} className="close-btn">
-                <X size={24} />
-              </button>
-            </div>
-            
-            <form onSubmit={handleUpload}>
-              {/* 이미지 미리보기 및 업로드 박스 */}
-              <div className="image-upload-area" onClick={() => document.getElementById('post-image-input').click()}>
-                {imagePreview ? (
-                  <img src={imagePreview} alt="Preview" className="upload-preview" />
-                ) : (
-                  <div className="upload-placeholder">
-                    <Camera size={32} />
-                    <span>추억의 사진 추가하기</span>
-                  </div>
-                )}
-                <input
-                  type="file"
-                  id="post-image-input"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  hidden
-                />
-              </div>
-
-              <textarea
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder="오늘 하루는 어땠나요? 소중한 감상을 적어주세요..."
-                rows={4}
-                className="modal-textarea"
-              />
-
-              <button
-                type="submit"
-                disabled={uploading || (!text.trim() && !image)}
-                className="submit-btn"
-              >
-                {uploading ? '공유 중...' : '둘만의 피드에 공유하기'}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+      <UploadModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleUpload}
+        text={text}
+        setText={setText}
+        imagePreviews={imagePreviews}
+        uploading={uploading}
+        onImageChange={handleImageChange}
+        onRemoveImage={removeSelectedImage}
+      />
 
       {/* 프로필 상세 보기 모달 */}
-      {selectedProfileUser && (
-        <div className="modal-overlay" onClick={() => setSelectedProfileUser(null)}>
-          <div className="modal-content glass-card" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>프로필 정보</h2>
-              <button onClick={() => setSelectedProfileUser(null)} className="close-btn">
-                <X size={24} />
-              </button>
-            </div>
+      <ProfileModal
+        selectedProfileUser={selectedProfileUser}
+        onClose={() => setSelectedProfileUser(null)}
+      />
 
-            <div className="detail-body" style={{ textAlign: 'center', padding: '20px' }}>
-              {selectedProfileUser.photoURL ? (
-                <img 
-                  src={selectedProfileUser.photoURL} 
-                  alt="Avatar" 
-                  className="large-avatar" 
-                  style={{ width: '120px', height: '120px', borderRadius: '50%', marginBottom: '12px', objectFit: 'cover', margin: '0 auto 12px' }} 
-                />
-              ) : (
-                <div 
-                  className="large-avatar-fallback" 
-                  style={{ width: '120px', height: '120px', borderRadius: '50%', margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--glass-border)', color: 'var(--text-sub)' }}
-                >
-                  <User size={60} />
-                </div>
-              )}
-              <h3 style={{ fontSize: '20px', fontWeight: '700', color: 'var(--text-main)', marginBottom: '4px' }}>
-                {selectedProfileUser.displayName}
-              </h3>
-              <p style={{ fontSize: '13px', color: 'var(--text-sub)' }}>
-                {selectedProfileUser.email}
-              </p>
-            </div>
-
-            <div className="detail-actions" style={{ textAlign: 'center', marginBottom: '12px', display: 'flex', justifyContent: 'center' }}>
-              <button 
-                onClick={() => setSelectedProfileUser(null)} 
-                className="detail-btn close-action-btn"
-                style={{ 
-                  background: 'rgba(0,0,0,0.05)',
-                  color: 'var(--text-sub)',
-                  border: '1px solid var(--glass-border)',
-                  borderRadius: '12px',
-                  padding: '10px 20px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  width: '100%',
-                  maxWidth: '120px'
-                }}
-              >
-                닫기
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       {/* 알림 히스토리 모달 */}
-      {isNotificationsOpen && (
-        <div className="modal-overlay" onClick={() => setIsNotificationsOpen(false)}>
-          <div className="modal-content glass-card" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Bell size={20} className="icon-pink" />
-                <h2 style={{ margin: 0 }}>알림 히스토리</h2>
-              </div>
-              <button onClick={() => setIsNotificationsOpen(false)} className="close-btn">
-                <X size={24} />
-              </button>
-            </div>
+      <NotificationsModal
+        isOpen={isNotificationsOpen}
+        onClose={() => setIsNotificationsOpen(false)}
+        notifications={notifications}
+        onMarkAllAsRead={handleMarkAllNotificationsAsRead}
+        onNotificationClick={handleNotificationClick}
+      />
 
-            {notifications.length > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '4px' }}>
-                <button 
-                  onClick={handleMarkAllNotificationsAsRead}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--primary)',
-                    fontSize: '12px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    padding: '4px 8px'
-                  }}
-                >
-                  모두 읽음 처리
-                </button>
-              </div>
-            )}
-
-            <div className="notifications-list">
-              {notifications.length === 0 ? (
-                <div className="notifications-empty">
-                  아직 도착한 알림이 없습니다. 💌
-                </div>
-              ) : (
-                notifications.map((notif) => (
-                  <div 
-                    key={notif.id} 
-                    className={`notification-item ${!notif.read ? 'unread' : ''}`}
-                    onClick={() => handleNotificationClick(notif)}
-                  >
-                    {notif.senderPhoto ? (
-                      <img src={notif.senderPhoto} alt="Sender" className="notification-item-avatar" />
-                    ) : (
-                      <div className="notification-item-avatar-fallback">
-                        <User size={18} />
-                      </div>
-                    )}
-                    <div className="notification-item-content">
-                      <div className="notification-item-title">{notif.title}</div>
-                      <div className="notification-item-body">{notif.body}</div>
-                      <div className="notification-item-date">
-                        {new Date(notif.createdAt).toLocaleString('ko-KR', {
-                          month: 'long',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <div className="detail-actions" style={{ textAlign: 'center', marginTop: '12px', display: 'flex', justifyContent: 'center' }}>
-              <button 
-                onClick={() => setIsNotificationsOpen(false)} 
-                className="detail-btn close-action-btn"
-                style={{ 
-                  background: 'rgba(0,0,0,0.05)',
-                  color: 'var(--text-sub)',
-                  border: '1px solid var(--glass-border)',
-                  borderRadius: '12px',
-                  padding: '10px 20px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  width: '100%',
-                  maxWidth: '120px'
-                }}
-              >
-                닫기
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* 인앱 실시간 알림 토스트 */}
+      <InAppToast
+        toast={activeToast}
+        onClose={() => setActiveToast(null)}
+      />
     </div>
   );
 };

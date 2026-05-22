@@ -4,7 +4,7 @@ import { describe, it, expect } from 'vitest';
 import Navbar from './Navbar';
 
 describe('Navbar Component', () => {
-  it('renders three main navigation links', () => {
+  it('renders four main navigation links', () => {
     render(
       <BrowserRouter>
         <Navbar />
@@ -13,6 +13,7 @@ describe('Navbar Component', () => {
     
     expect(screen.getByText('홈')).toBeInTheDocument();
     expect(screen.getByText('캘린더')).toBeInTheDocument();
+    expect(screen.getByText('체크리스트')).toBeInTheDocument();
     expect(screen.getByText('설정')).toBeInTheDocument();
   });
 

@@ -6,7 +6,8 @@ import Settings from './Settings';
 vi.mock('../firebase', () => ({
   auth: {
     signOut: vi.fn()
-  }
+  },
+  db: {}
 }));
 
 vi.mock('../hooks/useAuth', () => ({

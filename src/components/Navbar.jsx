@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Calendar, Settings } from 'lucide-react';
+import { Home, Calendar, CheckSquare, Settings } from 'lucide-react';
 
 const Navbar = () => {
   return (
@@ -13,6 +13,10 @@ const Navbar = () => {
         <NavLink to="/calendar" className={({ isActive }) => (isActive ? 'nav-item active' : 'nav-item')}>
           <Calendar size={24} />
           <span>캘린더</span>
+        </NavLink>
+        <NavLink to="/checklist" className={({ isActive }) => (isActive ? 'nav-item active' : 'nav-item')}>
+          <CheckSquare size={24} />
+          <span>체크리스트</span>
         </NavLink>
         <NavLink to="/settings" className={({ isActive }) => (isActive ? 'nav-item active' : 'nav-item')}>
           <Settings size={24} />

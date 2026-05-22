@@ -380,6 +380,8 @@ body {
   font-size: 15px;
   line-height: 1.5;
   color: var(--text-main);
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 
 .feed-card-footer {
@@ -478,6 +480,8 @@ body {
 .comment-text {
   color: var(--text-main);
   line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 
 .comment-form {
@@ -1629,7 +1633,964 @@ body {
   font-size: 14px;
 }
 
+/* Multiple Image Upload Preview and Gallery Styles */
+.image-upload-area-container {
+  width: 100%;
+  padding: 8px 0;
+  margin-top: 12px;
+}
 
+.image-previews-list {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 4px 4px 8px 4px;
+  scroll-behavior: smooth;
+}
 
+/* Hide scrollbar for Chrome, Safari and Opera */
+.image-previews-list::-webkit-scrollbar {
+  display: none;
+}
+/* Hide scrollbar for IE, Edge and Firefox */
+.image-previews-list {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.upload-preview-item {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border: 1px solid var(--glass-border);
+}
+
+.upload-preview-thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.remove-preview-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+  padding: 0;
+}
+
+.remove-preview-btn:hover {
+  background: rgba(239, 68, 68, 0.9);
+}
+
+.upload-add-more-btn {
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
+  border: 2px dashed var(--glass-border);
+  background: rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-sub);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.upload-add-more-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: var(--primary-light);
+  color: var(--primary);
+}
+
+/* Feed Images Gallery */
+.feed-images-gallery {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.feed-image-container {
+  position: relative;
+  width: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  transition: transform 0.2s ease;
+}
+
+.feed-image-container:hover {
+  transform: translateY(-2px);
+}
+
+.feed-image-like-btn {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  color: var(--text-sub);
+}
+
+.feed-image-like-btn:hover {
+  transform: scale(1.05);
+  background: #ffffff;
+}
+
+.feed-image-like-btn.liked {
+  color: var(--primary);
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(255, 75, 130, 0.2);
+}
+
+.feed-image-like-btn span {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+@media (prefers-color-scheme: dark) {
+  .feed-image-like-btn {
+    background: rgba(30, 30, 30, 0.85);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-sub);
+  }
+  .feed-image-like-btn:hover {
+    background: #2a2a2a;
+  }
+  .feed-image-like-btn.liked {
+    color: var(--primary);
+    background: rgba(30, 30, 30, 0.95);
+    border-color: rgba(255, 75, 130, 0.4);
+  }
+}
+
+/* Feed Images Slider (Side-scrolling Carousel) */
+.feed-images-slider-container {
+  position: relative;
+  width: 100%;
+}
+
+.feed-images-slider {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  width: 100%;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.feed-images-slider::-webkit-scrollbar {
+  display: none;
+}
+
+.feed-image-slide {
+  position: relative;
+  flex: 0 0 100%;
+  width: 100%;
+  scroll-snap-align: start;
+  overflow: hidden;
+}
+
+.feed-images-slider-container .feed-image {
+  width: 100%;
+  max-height: 400px;
+  object-fit: cover;
+  display: block;
+}
+
+.slider-indicator-dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.slider-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-sub);
+  opacity: 0.3;
+  transition: all 0.2s ease;
+}
+
+.slider-dot.active {
+  background: var(--primary);
+  opacity: 1;
+  transform: scale(1.2);
+}
+
+/* Slider Navigation Buttons (Desktop hover controls) */
+.slider-nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--text-main);
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  opacity: 0;
+}
+
+/* Show buttons on hover on PC/Desktop devices */
+.feed-images-slider-container:hover .slider-nav-btn {
+  opacity: 1;
+}
+
+.slider-nav-btn:hover {
+  background: #ffffff;
+  color: var(--primary);
+  transform: translateY(-50%) scale(1.05);
+}
+
+.slider-nav-btn.prev {
+  left: 12px;
+}
+
+.slider-nav-btn.next {
+  right: 12px;
+}
+
+.slider-nav-btn:disabled {
+  opacity: 0 !important;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Hide navigation buttons on touch screens as native swipe works best */
+@media (pointer: coarse) {
+  .slider-nav-btn {
+    display: none !important;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .slider-nav-btn {
+    background: rgba(30, 30, 30, 0.8);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-main);
+  }
+  .slider-nav-btn:hover {
+    background: #2a2a2a;
+    color: var(--primary);
+  }
+}
+
+/* In-App Toast Notifications */
+.in-app-toast {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+  max-width: 380px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 16px;
+  padding: 14px 18px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  z-index: 9999;
+  cursor: pointer;
+  animation: slideDownFade 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+@keyframes slideDownFade {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.toast-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toast-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--primary);
+  border-radius: 50%;
+  animation: toastPulse 1.5s infinite;
+}
+
+@keyframes toastPulse {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.9);
+    opacity: 0.6;
+  }
+}
+
+.toast-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.toast-body {
+  font-size: 12px;
+  color: var(--text-sub);
+  line-height: 1.4;
+}
+
+@media (prefers-color-scheme: dark) {
+  .in-app-toast {
+    background: rgba(30, 30, 30, 0.95);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  }
+}
+
+.detail-memo-box p {
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* Checklist Styling */
+.checklist-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  padding: 6px;
+  border-radius: 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.checklist-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.checklist-tab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: none;
+  background: none;
+  color: var(--text-sub);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.checklist-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  color: var(--text-main);
+}
+
+.checklist-tab-btn.active {
+  background: white;
+  color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.checklist-tab-badge {
+  font-size: 10px;
+  padding: 2px 6.5px;
+  border-radius: 8px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+/* 탭별 비활성/활성 상태의 고유 색상 브랜딩 */
+/* 1. 전체 (all) - 슬레이트 그레이 */
+.checklist-tab-btn.tab-all .checklist-tab-badge {
+  background: rgba(100, 116, 139, 0.12);
+  color: #64748b;
+}
+.checklist-tab-btn.tab-all.active {
+  background: white;
+  color: #475569;
+  box-shadow: var(--shadow-sm);
+}
+.checklist-tab-btn.tab-all.active .checklist-tab-badge {
+  background: #64748b;
+  color: white;
+}
+
+/* 2. 미정 (pending) - 시원한 블루 */
+.checklist-tab-btn.tab-pending .checklist-tab-badge {
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+}
+.checklist-tab-btn.tab-pending.active {
+  background: white;
+  color: #1d4ed8;
+  box-shadow: var(--shadow-sm);
+}
+.checklist-tab-btn.tab-pending.active .checklist-tab-badge {
+  background: #3b82f6;
+  color: white;
+}
+
+/* 3. 진행중 (progress) - 따뜻한 앰버/오렌지 */
+.checklist-tab-btn.tab-progress .checklist-tab-badge {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+}
+.checklist-tab-btn.tab-progress.active {
+  background: white;
+  color: #b45309;
+  box-shadow: var(--shadow-sm);
+}
+.checklist-tab-btn.tab-progress.active .checklist-tab-badge {
+  background: #f59e0b;
+  color: white;
+}
+
+/* 4. 완료 (completed) - 화사한 로즈/핑크 (커플 메인 테마) */
+.checklist-tab-btn.tab-completed .checklist-tab-badge {
+  background: rgba(236, 72, 153, 0.12);
+  color: #db2777;
+}
+.checklist-tab-btn.tab-completed.active {
+  background: white;
+  color: #be185d;
+  box-shadow: var(--shadow-sm);
+}
+.checklist-tab-btn.tab-completed.active .checklist-tab-badge {
+  background: #ec4899;
+  color: white;
+}
+
+.checklist-input-card {
+  margin-bottom: 20px;
+  padding: 16px;
+}
+
+.checklist-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.checklist-input {
+  flex: 1 1 100%;
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 12px 16px;
+  font-size: 14px;
+  outline: none;
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--text-main);
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.checklist-input:focus {
+  border-color: var(--primary-light);
+}
+
+.checklist-form select.checklist-status-select {
+  flex: 1;
+  max-width: none !important;
+  height: 42px;
+  font-size: 13px;
+  border-radius: 12px;
+  padding: 0 12px;
+}
+
+.checklist-add-btn {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: transform 0.1s;
+  flex: 1.2;
+  height: 42px;
+}
+
+.checklist-add-btn:active {
+  transform: scale(0.97);
+}
+
+.checklist-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.checklist-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  transition: all 0.25s ease;
+  animation: commentFadeIn 0.3s ease-out;
+}
+
+/* 3단계 상태별 카드 스타일 */
+.checklist-card.status-pending {
+  border-left: 4px solid #94a3b8; /* Slate 회색 */
+}
+
+.checklist-card.status-progress {
+  border-left: 4px solid #f97316; /* Orange 주황 */
+}
+
+.checklist-card.status-completed {
+  border-left: 4px solid var(--primary); /* Pink 핑크 */
+  background: rgba(255, 255, 255, 0.2);
+  opacity: 0.8;
+}
+
+.checklist-item-header {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+
+/* 카드 헤더 내부 2층: 상태 드롭다운 & 수정/삭제 버튼을 담은 영역 */
+.checklist-item-header > div:last-child:not(.checklist-title-wrapper) {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px dashed var(--glass-border);
+  padding-top: 8px;
+  margin-top: 2px;
+}
+
+.checklist-title-wrapper {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.checklist-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-main);
+  text-align: left;
+  line-height: 1.4;
+  word-break: break-all;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+  flex: 1;
+}
+
+.checklist-card.status-completed .checklist-title {
+  text-decoration: line-through;
+  color: var(--text-sub);
+}
+
+.checklist-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--glass-border);
+  padding-top: 10px;
+  margin-top: 4px;
+}
+
+.checklist-author-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-sub);
+}
+
+.checklist-author-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.checklist-author-fallback {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--glass-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.checklist-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.checklist-action-icon-btn {
+  background: none;
+  border: none;
+  color: var(--text-sub);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.checklist-action-icon-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-main);
+}
+
+.checklist-action-icon-btn.delete:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+}
+
+/* 상태 배지 및 드롭다운 */
+.checklist-status-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.checklist-status-badge.pending {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.checklist-status-badge.progress {
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+.checklist-status-badge.completed {
+  background: var(--primary-light);
+  color: white;
+}
+
+.checklist-status-select {
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.8);
+  outline: none;
+  color: var(--text-main);
+  cursor: pointer;
+}
+
+/* 5단계 진행도 하트 게이지 스타일 */
+.checklist-progress-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.checklist-stage-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.checklist-hearts-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.checklist-heart-btn {
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.checklist-heart-btn:hover {
+  transform: scale(1.2);
+}
+
+.checklist-heart-btn:active {
+  transform: scale(0.9);
+}
+
+.checklist-heart-icon {
+  width: 18px;
+  height: 18px;
+  transition: stroke 0.2s ease, fill 0.2s ease, color 0.2s ease;
+}
+
+/* 활성화된 하트 (핑크색 채움) */
+.checklist-heart-icon.filled {
+  color: var(--primary);
+  fill: var(--primary);
+}
+
+/* 비활성화된 하트 (연한 회색/빈 하트) */
+.checklist-heart-icon.empty {
+  color: var(--text-sub);
+  opacity: 0.35;
+  fill: none;
+}
+
+/* 단계 레이블 배지 */
+.checklist-stage-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--text-main);
+  white-space: nowrap;
+}
+
+.checklist-card.status-completed .checklist-stage-badge {
+  background: rgba(255, 75, 130, 0.1);
+  color: var(--primary);
+}
+
+/* 미니 게이지 바 */
+.checklist-mini-progress-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.checklist-mini-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-light), var(--primary));
+  transition: width 0.3s ease-in-out;
+}
+
+/* 중요도 필터 칩 스타일 */
+.checklist-priority-chips {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+  padding: 2px 0;
+  scrollbar-width: none;
+}
+
+.checklist-priority-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.checklist-priority-chip {
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  color: var(--text-sub);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.checklist-priority-chip:hover {
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--text-main);
+}
+
+.checklist-priority-chip.active {
+  background: white;
+  color: var(--primary);
+  border-color: var(--primary-light);
+  box-shadow: 0 2px 8px rgba(255, 75, 130, 0.15);
+}
+
+/* 중요도 뱃지 및 드롭다운 */
+.priority-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.priority-badge.prio-high {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.priority-badge.prio-medium {
+  background: #ffedd5;
+  color: #f97316;
+}
+
+.priority-badge.prio-low {
+  background: #dcfce7;
+  color: #22c55e;
+}
+
+.checklist-sort-select {
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 3px 8px;
+  background: rgba(255, 255, 255, 0.8);
+  outline: none;
+  color: var(--text-main);
+  cursor: pointer;
+}
+
+/* 다크모드 대응 */
+@media (prefers-color-scheme: dark) {
+  .checklist-tab-btn.tab-all.active {
+    background: #2a2a2a;
+    color: #94a3b8;
+  }
+  .checklist-tab-btn.tab-pending.active {
+    background: #2a2a2a;
+    color: #60a5fa;
+  }
+  .checklist-tab-btn.tab-progress.active {
+    background: #2a2a2a;
+    color: #fbbf24;
+  }
+  .checklist-tab-btn.tab-completed.active {
+    background: #2a2a2a;
+    color: #f472b6;
+  }
+  .checklist-tabs {
+    background: rgba(30, 30, 30, 0.4);
+  }
+  .checklist-input {
+    background: rgba(30, 30, 30, 0.6);
+  }
+  .checklist-status-select {
+    background: rgba(30, 30, 30, 0.8);
+    color: var(--text-main);
+  }
+  .checklist-card.status-completed {
+    background: rgba(30, 30, 30, 0.2);
+  }
+  .checklist-heart-icon.empty {
+    color: var(--text-sub);
+    opacity: 0.25;
+  }
+  .checklist-stage-badge {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-main);
+  }
+  .checklist-card.status-completed .checklist-stage-badge {
+    background: rgba(255, 75, 130, 0.2);
+    color: var(--primary-light);
+  }
+  .checklist-mini-progress-bar {
+    background: rgba(255, 255, 255, 0.1);
+  }
+  .checklist-priority-chip.active {
+    background: #2a2a2a;
+    color: var(--primary);
+  }
+  .checklist-priority-chip {
+    background: rgba(30, 30, 30, 0.4);
+  }
+  .priority-badge.prio-high {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+  }
+  .priority-badge.prio-medium {
+    background: rgba(249, 115, 22, 0.2);
+    color: #fb923c;
+  }
+  .priority-badge.prio-low {
+    background: rgba(34, 197, 94, 0.2);
+    color: #4ade80;
+  }
+  .checklist-sort-select {
+    background: rgba(30, 30, 30, 0.8);
+    color: var(--text-main);
+  }
+}
 
 
